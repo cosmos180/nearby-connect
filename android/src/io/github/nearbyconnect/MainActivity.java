@@ -77,15 +77,26 @@ public final class MainActivity extends Activity {
         button(layout, "KDE Connect 后台运行设置", v -> appSettings("org.kde.kdeconnect_tp"));
         layout.addView(text("使用条件\n手机和电脑接入同一局域网，蓝牙保持开启。请在系统设置中允许这两个应用后台运行；重启手机后需要重新点一次开启。", 15));
         layout.addView(text("蓝牙只发送本机专用标识和 Wi-Fi IPv4 地址，不发送文件或消息。现有 GSConnect 配对负责身份验证。本应用不申请互联网、定位、短信或通讯录权限。", 14));
-        button(layout, "扫码绑定电脑", v -> {
-            Intent scan = new Intent("com.google.zxing.client.android.SCAN");
-            scan.putExtra("SCAN_MODE", "QR_CODE_MODE");
-            try { startActivityForResult(scan, 3); }
-            catch (android.content.ActivityNotFoundException e) { pasteBinding(); }
-        });
-        button(layout, "粘贴绑定码", v -> pasteBinding());
         String bound = getSharedPreferences("binding", MODE_PRIVATE).getString("uuid", null);
-        layout.addView(text(bound == null ? "尚未绑定电脑" : "已配置靠近广播", 14));
+        layout.addView(text(bound == null ? "尚未绑定电脑" : "已绑定电脑", 14));
+        if (bound == null) {
+            button(layout, "扫码绑定电脑", v -> {
+                if (checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
+                    startActivityForResult(new Intent(this, ScanActivity.class), 3);
+                else requestPermissions(new String[]{Manifest.permission.CAMERA}, 4);
+            });
+            button(layout, "粘贴绑定码", v -> pasteBinding());
+        } else button(layout, "解除绑定", v ->
+            new android.app.AlertDialog.Builder(this).setTitle("解除这台手机的靠近绑定？")
+                .setMessage("将停止广播并清除本机绑定码。之后可以重新扫码绑定。")
+                .setNegativeButton("取消", null)
+                .setPositiveButton("解除绑定", (dialog, which) -> {
+                    stopService(new Intent(this, BroadcastService.class));
+                    getSharedPreferences("binding", MODE_PRIVATE).edit().remove("uuid").apply();
+                    getSharedPreferences("state", MODE_PRIVATE).edit().putString("status", "已停止").apply();
+                    setIntent(new Intent());
+                    recreate();
+                }).show());
         if (state == null && Intent.ACTION_VIEW.equals(getIntent().getAction())) {
             confirmBinding(getIntent().getDataString());
         }
@@ -135,7 +146,8 @@ public final class MainActivity extends Activity {
 
     private void enable() {
         if (!getSharedPreferences("binding", MODE_PRIVATE).contains("uuid")) {
-            pasteBinding();
+            new android.app.AlertDialog.Builder(this).setMessage("请先扫码或粘贴绑定码，再开启广播。")
+                .setPositiveButton("确定", null).show();
             return;
         }
         ArrayList<String> permissions = new ArrayList<>();
@@ -175,6 +187,13 @@ public final class MainActivity extends Activity {
 
     @Override public void onRequestPermissionsResult(int request, String[] permissions, int[] results) {
         super.onRequestPermissionsResult(request, permissions, results);
+        if (request == 4 && results.length > 0) {
+            if (results[0] == PackageManager.PERMISSION_GRANTED)
+                startActivityForResult(new Intent(this, ScanActivity.class), 3);
+            else new android.app.AlertDialog.Builder(this).setMessage("扫码需要相机权限。可在应用设置中授权，或粘贴绑定码。")
+                .setPositiveButton("设置", (d,w) -> appSettings(getPackageName()))
+                .setNegativeButton("返回", null).show();
+        }
         if (request == 1) startBroadcast();
     }
 

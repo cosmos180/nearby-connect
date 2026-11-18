@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 """Install this user's watcher and enable its graphical-session service."""
-import json
 from pathlib import Path
 import shutil
 import subprocess
@@ -16,17 +15,13 @@ LAUNCHER = HOME / ".local/bin/nearby-connect"
 def main():
     import sys
     sys.path.insert(0, str(ROOT / "desktop"))
-    from pairing import choose
+    from pairing import choose, save_binding
     profile = choose()
     DEST.mkdir(parents=True, exist_ok=True)
     CONFIG.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     for file in (ROOT / "desktop").glob("*.py"):
         shutil.copy2(file, DEST / file.name)
-    import tempfile
-    with tempfile.NamedTemporaryFile(mode="w", dir=CONFIG.parent, delete=False) as temp:
-        json.dump(profile, temp)
-    Path(temp.name).replace(CONFIG)
-    CONFIG.chmod(0o600)
+    save_binding(CONFIG, profile)
     LAUNCHER.parent.mkdir(parents=True, exist_ok=True)
     # Keep the program next to core.py so direct invocation also finds its module.
     LAUNCHER.write_text('#!/bin/sh\nexec /usr/bin/python3 "$HOME/.local/share/nearby-connect/desktop/nearby_connect.py" "$@"\n')

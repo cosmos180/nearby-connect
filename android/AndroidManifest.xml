@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="io.github.nearbyconnect" android:versionCode="5" android:versionName="0.2.0">
+    package="io.github.nearbyconnect" android:versionCode="8" android:versionName="0.2.3">
     <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="35" />
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
@@ -12,6 +12,9 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <queries><package android:name="org.kde.kdeconnect_tp" /></queries>
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
     <application android:label="靠近互联" android:icon="@drawable/ic_nearby"
         android:theme="@android:style/Theme.Material.Light.NoActionBar"
         android:allowBackup="false" android:supportsRtl="true">
@@ -27,6 +30,7 @@
                 <data android:scheme="nearbyconnect" android:host="bind" />
             </intent-filter>
         </activity>
+        <activity android:name=".ScanActivity" android:exported="false" android:screenOrientation="portrait" />
         <service android:name=".BroadcastService" android:exported="false"
             android:foregroundServiceType="connectedDevice" android:stopWithTask="false" />
     </application>

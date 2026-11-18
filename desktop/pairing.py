@@ -29,3 +29,28 @@ def choose():
     if input("手机确认绑定后按 Enter 保存；输入其他内容取消："):
         raise SystemExit("已取消电脑端配置。")
     return {"name": dev["Name"], "device_id": dev["Id"], "service_uuid": key}
+
+
+def save_binding(config, profile):
+    import json
+    import tempfile
+    from pathlib import Path
+    config.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    with tempfile.NamedTemporaryFile(mode="w", dir=config.parent, delete=False) as temp:
+        json.dump(profile, temp)
+    Path(temp.name).replace(config)
+
+
+def manage_binding(config, state, unbind):
+    if unbind:
+        if input("解除本机靠近绑定并停止监听？输入 y 确认：").strip().lower() != "y":
+            print("已取消。")
+            return
+        subprocess.run(["systemctl", "--user", "disable", "--now", "nearby-connect.service"], check=True)
+        config.unlink(missing_ok=True)
+        state.unlink(missing_ok=True)
+        print("电脑端已解绑。")
+    else:
+        save_binding(config, choose())
+        subprocess.run(["systemctl", "--user", "enable", "nearby-connect.service"], check=True)
+        subprocess.run(["systemctl", "--user", "restart", "nearby-connect.service"], check=True)

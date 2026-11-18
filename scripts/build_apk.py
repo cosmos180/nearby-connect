@@ -18,6 +18,7 @@ JDK = Path(java_home) if java_home else Path(shutil.which("javac")).resolve().pa
 TOOLS = SDK / "build-tools/35.0.0"
 PLATFORM = SDK / "platforms/android-35/android.jar"
 BUILD = ROOT / "build"
+ZXING = ROOT / "android/libs/core-3.3.2.jar"
 KEYDIR = Path.home() / ".local/share/nearby-connect/release-signing"
 SIGNING = KEYDIR / "release.p12"
 PASSWORD = KEYDIR / "password"
@@ -39,13 +40,13 @@ def main():
     run([TOOLS / "aapt", "package", "-f", "-m", "-M", ROOT / "android/AndroidManifest.xml",
          "-S", ROOT / "android/res", "-I", PLATFORM, "-J", BUILD / "generated", "-F", unsigned])
     sources = sorted((ROOT / "android/src").rglob("*.java")) + sorted((BUILD / "generated").rglob("*.java"))
-    run([JDK / "bin/javac", "-encoding", "UTF-8", "--release", "8", "-classpath", PLATFORM,
+    run([JDK / "bin/javac", "-encoding", "UTF-8", "--release", "8", "-classpath", os.pathsep.join(map(str, (PLATFORM, ZXING))),
          "-d", BUILD / "classes", *sources])
     class_jar = BUILD / "classes.jar"
     with zipfile.ZipFile(class_jar, "w") as archive:
         for file in (BUILD / "classes").rglob("*.class"):
             archive.write(file, str(file.relative_to(BUILD / "classes")))
-    run([TOOLS / "d8", "--lib", PLATFORM, "--min-api", "26", "--output", BUILD / "dex", class_jar])
+    run([TOOLS / "d8", "--lib", PLATFORM, "--min-api", "26", "--output", BUILD / "dex", class_jar, ZXING])
     with zipfile.ZipFile(unsigned, "a", compression=zipfile.ZIP_DEFLATED) as archive:
         archive.write(BUILD / "dex/classes.dex", "classes.dex")
     aligned = BUILD / "aligned.apk"

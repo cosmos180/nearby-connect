@@ -343,7 +343,16 @@ def main():
     parser.add_argument("--seconds", type=int)
     parser.add_argument("--status", action="store_true")
     parser.add_argument("--refresh", action="store_true", help="Manually request LAN discovery")
+    binding = parser.add_mutually_exclusive_group()
+    binding.add_argument("--bind", action="store_true", help="选择手机并显示绑定二维码")
+    binding.add_argument("--unbind", action="store_true", help="解除本机绑定并停止监听")
     args = parser.parse_args()
+    if args.bind or args.unbind:
+        if args.config != str(CONFIG) or args.status or args.refresh or args.dry_run or args.seconds is not None:
+            parser.error("绑定管理请单独使用 --bind 或 --unbind")
+        from pairing import manage_binding
+        manage_binding(CONFIG, STATE, args.unbind)
+        return
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     if args.status:
         if STATE.exists():

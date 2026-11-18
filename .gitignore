@@ -1,0 +1,10 @@
+__pycache__/
+build/
+profile.json
+*.keystore
+*.pcap*
+*.log
+*.p12
+*.jks
+*.apk
+*.idsig
